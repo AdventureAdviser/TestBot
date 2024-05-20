@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Streamer</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #f4f4f4;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+        .container {
+            max-width: 800px;
+            width: 100%;
+            background-color: #fff;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        header {
+            background-color: #007bff;
+            color: #fff;
+            padding: 20px;
+            text-align: center;
+        }
+        header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+        .controls {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+        }
+        .controls form {
+            display: flex;
+            align-items: center;
+        }
+        .controls label {
+            margin-right: 10px;
+            font-weight: 500;
+        }
+        .controls input[type="number"] {
+            width: 80px;
+            padding: 5px;
+            margin-right: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+        .controls button {
+            padding: 8px 16px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .controls button:hover {
+            background-color: #0056b3;
+        }
+        .video-wrapper {
+            text-align: center;
+            background-color: #000;
+        }
+        .video-wrapper img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 0 auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Video Streamer</h1>
+        </header>
+        <div class="video-wrapper">
+            <img src="{{ url_for('video_feed') }}" alt="Video Feed">
+        </div>
+        <div class="controls">
+            <form action="/set_fps" method="post">
+                <label for="fps">Set FPS:</label>
+                <input type="number" id="fps" name="fps" min="1" max="240" value="120">
+                <button type="submit">Update FPS</button>
+            </form>
+            <form action="/set_scale" method="post">
+                <label for="scale">Set Scale:</label>
+                <input type="number" id="scale" name="scale" step="0.1" min="0.1" max="2.0" value="1.0">
+                <button type="submit">Update Scale</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
