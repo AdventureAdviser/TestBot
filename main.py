@@ -1,5 +1,5 @@
-from detector.detector import main
+import asyncio
+from detector.detector import main as detector_main
 
 if __name__ == "__main__":
-    import asyncio
-    asyncio.run(main())
+    asyncio.run(detector_main())

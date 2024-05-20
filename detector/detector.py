@@ -5,10 +5,15 @@ from mss import mss
 from ultralytics import YOLO
 import asyncio
 import concurrent.futures
+import time
 
 # Load the YOLOv8 model on the GPU
 model = YOLO('best.pt')
 model.to('cuda')
+
+# Глобальные параметры для фреймрейта и масштаба
+current_fps = 30  # Изначальный фреймрейт
+current_scale = 1.0  # Изначальный масштаб
 
 
 async def capture_window(window_title="ArkAscended"):
@@ -29,8 +34,16 @@ async def capture_window(window_title="ArkAscended"):
                 break
 
 
-def process_frame(frame):
+def process_frame(frame, scale, fps):
     """ Обрабатывает захваченный кадр с использованием модели YOLOv8 для трекинга объектов """
+    start_time = time.time()
+
+    # Масштабируем изображение
+    if scale != 1.0:
+        width = int(frame.shape[1] * scale)
+        height = int(frame.shape[0] * scale)
+        frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
+
     results = model.track(frame, persist=True, device=0)
     for result in results:
         boxes = result.boxes.xyxy.cpu().numpy()
@@ -42,6 +55,12 @@ def process_frame(frame):
             frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
             frame = cv2.putText(frame, f'{model.names[int(label)]} {score:.2f}', (x1, y1 - 10),
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+
+    # Контролируем фреймрейт
+    elapsed_time = time.time() - start_time
+    time_to_wait = max(0, (1.0 / fps) - elapsed_time)
+    time.sleep(time_to_wait)
+
     return frame
 
 
@@ -59,7 +78,7 @@ async def main():
     loop = asyncio.get_running_loop()
     async for frame in capture_window(window_title):
         with concurrent.futures.ThreadPoolExecutor() as pool:
-            processed_frame = await loop.run_in_executor(pool, process_frame, frame)
+            processed_frame = await loop.run_in_executor(pool, process_frame, frame, current_scale, current_fps)
             continue_display = await display_frame(processed_frame)
             if not continue_display:
                 break
