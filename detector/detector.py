@@ -44,24 +44,17 @@ def process_frame(frame, scale, fps):
         height = int(frame.shape[0] * scale)
         frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
 
-    results = model.track(frame, persist=True, device=0)
-    for result in results:
-        boxes = result.boxes.xyxy.cpu().numpy()
-        scores = result.boxes.conf.cpu().numpy()
-        labels = result.boxes.cls.cpu().numpy()
+    results = model(frame)
 
-        for box, score, label in zip(boxes, scores, labels):
-            x1, y1, x2, y2 = map(int, box)
-            frame = cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
-            frame = cv2.putText(frame, f'{model.names[int(label)]} {score:.2f}', (x1, y1 - 10),
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.9, (255, 0, 0), 2)
+    # Используем встроенную функцию для отрисовки результатов
+    annotated_frame = results[0].plot()
 
     # Контролируем фреймрейт
     elapsed_time = time.time() - start_time
     time_to_wait = max(0, (1.0 / fps) - elapsed_time)
     time.sleep(time_to_wait)
 
-    return frame
+    return annotated_frame
 
 
 async def display_frame(frame):
