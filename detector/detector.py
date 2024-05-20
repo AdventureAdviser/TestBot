@@ -5,6 +5,13 @@ from mss import mss
 from ultralytics import YOLO
 import asyncio
 import time
+import logging
+import queue
+import threading
+from controller.controller import start_controller
+
+# Отключаем логирование ultralytics
+logging.getLogger('ultralytics').setLevel(logging.WARNING)
 
 # Load the YOLOv8 model on the GPU
 print("Загрузка модели YOLO...")
@@ -16,7 +23,8 @@ print("Модель YOLO загружена")
 current_fps = 120  # Зададим максимально возможный фреймрейт по умолчанию
 current_scale = 1.0  # Изначальный масштаб
 
-async def capture_and_process_window(frame_queue, window_title="ArkAscended"):
+
+async def capture_and_process_window(frame_queue, controller_queue, window_title="ArkAscended"):
     """ Захватывает видеопоток из указанного окна, обрабатывает и отправляет в очередь """
     print("Запуск захвата видеопотока...")
     sct = mss()
@@ -37,39 +45,69 @@ async def capture_and_process_window(frame_queue, window_title="ArkAscended"):
                     height = int(frame.shape[0] * current_scale)
                     frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
 
-                results = model(frame, device=0, workers=12)  # Обрабатываем кадр с использованием модели YOLOv8 на GPU
+                results = model(frame, device=0,
+                                verbose=False, workers=12)  # Обрабатываем кадр с использованием модели YOLOv8 на GPU
                 annotated_frame = results[0].plot()
 
                 await frame_queue.put(annotated_frame)
+
+                # Отправляем результаты в очередь контроллера
+                controller_queue.put(results[0].boxes)
 
                 # Вычисляем время захвата и обработки кадра, и спим оставшееся время, чтобы поддерживать текущий фреймрейт
                 elapsed_time = time.time() - start_time
                 time_to_wait = max(0, (1.0 / current_fps) - elapsed_time)
                 await asyncio.sleep(time_to_wait)
+            except asyncio.CancelledError:
+                break
             except Exception as e:
                 print(f"Произошла ошибка в захвате видеопотока: {e}")
                 break
 
+
 async def display_frame(frame_queue):
     """ Отображает обработанные кадры из очереди """
-    while True:
-        frame = await frame_queue.get()
-        cv2.imshow('Window Stream', frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):
-            cv2.destroyAllWindows()
-            break
+    try:
+        while True:
+            frame = await frame_queue.get()
+            cv2.imshow('Window Stream', frame)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                cv2.destroyAllWindows()
+                break
+    except asyncio.CancelledError:
+        cv2.destroyAllWindows()
+        print("Задача отображения отменена")
+
 
 async def main():
     print("Запуск основного процесса...")
     window_title = "ArkAscended"
     frame_queue = asyncio.Queue()
+    controller_queue = queue.Queue()  # Используем потокобезопасную очередь для контроллера
 
-    capture_task = asyncio.create_task(capture_and_process_window(frame_queue, window_title))
+    # Запуск контроллера в отдельном потоке
+    controller_thread = threading.Thread(target=start_controller, args=(controller_queue,))
+    controller_thread.start()
+
+    capture_task = asyncio.create_task(capture_and_process_window(frame_queue, controller_queue, window_title))
     display_task = asyncio.create_task(display_frame(frame_queue))
 
-    await asyncio.gather(capture_task, display_task)
+    try:
+        await asyncio.gather(capture_task, display_task)
+    except asyncio.CancelledError:
+        capture_task.cancel()
+        display_task.cancel()
+        await capture_task
+        await display_task
+
+    # Завершение работы контроллера
+    controller_queue.put(None)
+    controller_thread.join()
+
 
 if __name__ == "__main__":
-    print("Запуск программы...")
-    asyncio.run(main())
-    print("Программа завершена")
+    try:
+        print("Запуск программы...")
+        asyncio.run(main())
+    except KeyboardInterrupt:
+        print("Завершение программы...")
