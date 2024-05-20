@@ -8,6 +8,7 @@ import time
 import logging
 import queue
 import threading
+from collections import defaultdict
 from controller.controller import start_controller
 from streamer.streamer import start_streamer
 
@@ -23,6 +24,7 @@ print("Модель YOLO загружена")
 # Глобальные параметры для фреймрейта и масштаба
 current_fps = 120  # Зададим максимально возможный фреймрейт по умолчанию
 current_scale = 1.0  # Изначальный масштаб
+track_history = defaultdict(lambda: [])
 
 
 async def capture_and_process_window(frame_queue, controller_queue, window_title="ArkAscended"):
@@ -46,9 +48,21 @@ async def capture_and_process_window(frame_queue, controller_queue, window_title
                     height = int(frame.shape[0] * current_scale)
                     frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
 
-                results = model(frame, device=0,
-                                verbose=False, workers=12)  # Обрабатываем кадр с использованием модели YOLOv8 на GPU
+                # Обрабатываем кадр с использованием модели YOLOv8 на GPU и трекера ByteTrack
+                results = model.track(frame, device=0, workers=12, tracker='bytetrack.yaml', persist=True, verbose=False)
                 annotated_frame = results[0].plot()
+
+                # Визуализация треков
+                if results[0].boxes.id is not None:
+                    track_ids = results[0].boxes.id.int().cpu().tolist()
+                    centers = [(int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)) for box in
+                               results[0].boxes.xyxy]
+
+                    for track_id, center in zip(track_ids, centers):
+                        track_history[track_id].append(center)
+                        for i in range(1, len(track_history[track_id])):
+                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i],
+                                     color=(0, 255, 0), thickness=2)
 
                 await frame_queue.put(annotated_frame)
 

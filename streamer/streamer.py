@@ -1,6 +1,4 @@
 import cv2
-import asyncio
-import threading
 import queue
 
 class Streamer:
