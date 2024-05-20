@@ -9,6 +9,7 @@ import logging
 import queue
 import threading
 from controller.controller import start_controller
+from streamer.streamer import display_frame
 
 # Отключаем логирование ultralytics
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
@@ -63,20 +64,6 @@ async def capture_and_process_window(frame_queue, controller_queue, window_title
             except Exception as e:
                 print(f"Произошла ошибка в захвате видеопотока: {e}")
                 break
-
-
-async def display_frame(frame_queue):
-    """ Отображает обработанные кадры из очереди """
-    try:
-        while True:
-            frame = await frame_queue.get()
-            cv2.imshow('Window Stream', frame)
-            if cv2.waitKey(1) & 0xFF == ord('q'):
-                cv2.destroyAllWindows()
-                break
-    except asyncio.CancelledError:
-        cv2.destroyAllWindows()
-        print("Задача отображения отменена")
 
 
 async def main():
