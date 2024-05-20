@@ -9,7 +9,7 @@ import logging
 import queue
 import threading
 from controller.controller import start_controller
-from streamer.streamer import display_frame
+from streamer.streamer import start_streamer
 
 # Отключаем логирование ultralytics
 logging.getLogger('ultralytics').setLevel(logging.WARNING)
@@ -71,25 +71,41 @@ async def main():
     window_title = "ArkAscended"
     frame_queue = asyncio.Queue()
     controller_queue = queue.Queue()  # Используем потокобезопасную очередь для контроллера
+    frame_queue_for_streamer = queue.Queue()
 
     # Запуск контроллера в отдельном потоке
     controller_thread = threading.Thread(target=start_controller, args=(controller_queue,))
     controller_thread.start()
 
+    # Запуск стримера в отдельном потоке
+    streamer_thread = threading.Thread(target=start_streamer, args=(frame_queue_for_streamer,))
+    streamer_thread.start()
+
+    async def relay_frames():
+        while True:
+            frame = await frame_queue.get()
+            frame_queue_for_streamer.put(frame)
+            if frame is None:
+                break
+
     capture_task = asyncio.create_task(capture_and_process_window(frame_queue, controller_queue, window_title))
-    display_task = asyncio.create_task(display_frame(frame_queue))
+    relay_task = asyncio.create_task(relay_frames())
 
     try:
-        await asyncio.gather(capture_task, display_task)
+        await asyncio.gather(capture_task, relay_task)
     except asyncio.CancelledError:
         capture_task.cancel()
-        display_task.cancel()
+        relay_task.cancel()
         await capture_task
-        await display_task
+        await relay_task
 
     # Завершение работы контроллера
     controller_queue.put(None)
     controller_thread.join()
+
+    # Завершение работы стримера
+    frame_queue_for_streamer.put(None)
+    streamer_thread.join()
 
 
 if __name__ == "__main__":
