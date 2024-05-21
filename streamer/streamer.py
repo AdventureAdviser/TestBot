@@ -18,6 +18,10 @@ class Streamer:
                 self.configurator.set_fps(config_item[1])
             elif config_item[0] == 'scale':
                 self.configurator.set_scale(config_item[1])
+            elif config_item[0] == 'area_threshold':
+                self.configurator.set_area_threshold(config_item[1])
+            elif config_item[0] == 'distance_threshold':
+                self.configurator.set_distance_threshold(config_item[1])
             elif config_item[0] == 'enable_visualization':
                 global ENABLE_VISUALIZATION
                 ENABLE_VISUALIZATION = config_item[1]
@@ -40,7 +44,9 @@ def start_streamer(frame_queue, configurator, config_queue):
     def index():
         fps = configurator.get_fps()
         scale = configurator.get_scale()
-        return render_template('index.html', fps=fps, scale=scale)
+        area_threshold = configurator.get_area_threshold()
+        distance_threshold = configurator.get_distance_threshold()
+        return render_template('index.html', fps=fps, scale=scale, area_threshold=area_threshold, distance_threshold=distance_threshold)
 
     @app.route('/video_feed')
     def video_feed():
@@ -67,5 +73,18 @@ def start_streamer(frame_queue, configurator, config_queue):
         streamer.config_queue.put(('scale', scale))
         return ('', 204)
 
-    app.run(host='0.0.0.0', port=5000)
+    @app.route('/set_area_threshold', methods=['POST'])
+    def set_area_threshold():
+        area_threshold = int(request.form['area_threshold'])
+        configurator.set_area_threshold(area_threshold)
+        streamer.config_queue.put(('area_threshold', area_threshold))
+        return ('', 204)
 
+    @app.route('/set_distance_threshold', methods=['POST'])
+    def set_distance_threshold():
+        distance_threshold = int(request.form['distance_threshold'])
+        configurator.set_distance_threshold(distance_threshold)
+        streamer.config_queue.put(('distance_threshold', distance_threshold))
+        return ('', 204)
+
+    app.run(host='0.0.0.0', port=5000)

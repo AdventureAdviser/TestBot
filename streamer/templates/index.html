@@ -48,7 +48,7 @@
         .video-wrapper img {
             width: 100%;
             height: auto;
-            max-height: calc(100vh - 100px); /* Учитываем высоту заголовка и контролов */
+            max-height: calc(100vh - 160px); /* Учитываем высоту заголовка и контролов */
             object-fit: contain;
         }
         .controls {
@@ -60,6 +60,7 @@
         .controls form {
             display: flex;
             align-items: center;
+            margin: 5px;
         }
         .controls label {
             margin-right: 10px;
@@ -105,6 +106,16 @@
                 <input type="number" id="scale" name="scale" step="0.1" min="0.1" max="2.0" value="{{ scale }}">
                 <button type="submit">Update Scale</button>
             </form>
+            <form id="area-form" action="/set_area_threshold" method="post">
+                <label for="area_threshold">Set Area Threshold:</label>
+                <input type="number" id="area_threshold" name="area_threshold" min="0" value="{{ area_threshold }}">
+                <button type="submit">Update Area Threshold</button>
+            </form>
+            <form id="distance-form" action="/set_distance_threshold" method="post">
+                <label for="distance_threshold">Set Distance Threshold:</label>
+                <input type="number" id="distance_threshold" name="distance_threshold" min="0" value="{{ distance_threshold }}">
+                <button type="submit">Update Distance Threshold</button>
+            </form>
         </div>
     </div>
     <script>
@@ -131,6 +142,38 @@
             formData.append('fps', fps);
 
             fetch('/set_fps', {
+                method: 'POST',
+                body: formData
+            }).then(() => {
+                // Обновляем изображение
+                const img = document.getElementById('video-stream');
+                img.src = '/video_feed?' + new Date().getTime();
+            });
+        });
+
+        document.getElementById('area-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const area_threshold = document.getElementById('area_threshold').value;
+            const formData = new FormData();
+            formData.append('area_threshold', area_threshold);
+
+            fetch('/set_area_threshold', {
+                method: 'POST',
+                body: formData
+            }).then(() => {
+                // Обновляем изображение
+                const img = document.getElementById('video-stream');
+                img.src = '/video_feed?' + new Date().getTime();
+            });
+        });
+
+        document.getElementById('distance-form').addEventListener('submit', function(event) {
+            event.preventDefault();
+            const distance_threshold = document.getElementById('distance_threshold').value;
+            const formData = new FormData();
+            formData.append('distance_threshold', distance_threshold);
+
+            fetch('/set_distance_threshold', {
                 method: 'POST',
                 body: formData
             }).then(() => {
