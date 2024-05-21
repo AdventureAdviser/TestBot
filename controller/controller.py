@@ -7,7 +7,7 @@ class Controller:
 
     def generate_commands(self, data):
         # Здесь будет код для генерации команд управления
-        print("Контроллер генерирует команды на основе данных:")
+        # print("Контроллер генерирует команды на основе данных:")
         commands = []
         for box in data:
             coords = box.xyxy.cpu().numpy()
@@ -25,7 +25,7 @@ class Controller:
             if data is None:  # Специальный сигнал для завершения работы
                 break
             self.generate_commands(data)
-            print("Контроллер получил данные и сгенерировал команды")
+            # print("Контроллер получил данные и сгенерировал команды")
 
 # Функция для запуска контроллера в отдельном потоке
 def start_controller(controller_queue):
