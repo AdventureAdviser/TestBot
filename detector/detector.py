@@ -46,20 +46,22 @@ def draw_largest_object_line_and_area(frame, boxes):
         object_center_x = (x1 + x2) // 2
         object_center_y = (y1 + y2) // 2
 
+        distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
+
         # Проверяем, пересекается ли луч от центра экрана вниз с объектом
         if x1 <= center_x <= x2 and center_y <= y2:
-            line_color = (135, 206, 235)  # Голубой цвет
+            if distance < 100 and largest_area > 2800:
+                line_color = (0, 255, 0)  # Зеленый цвет
+            else:
+                line_color = (135, 206, 235)  # Голубой цвет
         else:
             line_color = (255, 99, 71)  # Мягкий красный цвет
 
         cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), line_color, 2)
-        distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
-        cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, line_color, 2)
-
-        cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 205, 50), 2)
+        cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, line_color, 2)
+        cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return frame
-
 
 async def capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title="ArkAscended"):
     """ Захватывает видеопоток из указанного окна, обрабатывает и отправляет в очередь """
@@ -77,23 +79,15 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 
                 # Проверяем изменения в конфигурации
-                clear_queue = False
                 while not config_queue.empty():
                     config_item = config_queue.get()
                     if config_item[0] == 'fps':
                         configurator.set_fps(config_item[1])
-                        clear_queue = True
                     elif config_item[0] == 'scale':
                         configurator.set_scale(config_item[1])
-                        clear_queue = True
                     elif config_item[0] == 'enable_visualization':
                         global ENABLE_VISUALIZATION
                         ENABLE_VISUALIZATION = config_item[1]
-                        clear_queue = True
-
-                if clear_queue:
-                    while not frame_queue.empty():
-                        frame_queue.get()
 
                 current_scale = configurator.get_scale()
 
@@ -115,7 +109,7 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
                     for track_id, center in zip(track_ids, centers):
                         track_history[track_id].append(center)
                         for i in range(1, len(track_history[track_id])):
-                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i], color=(50, 205, 50), thickness=2)
+                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i], color=(0, 255, 0), thickness=2)
 
                 # Если включена визуализация, рисуем линию и подписываем площадь для самого большого объекта
                 if ENABLE_VISUALIZATION:
@@ -135,7 +129,6 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
             except Exception as e:
                 print(f"Произошла ошибка в захвате видеопотока: {e}")
                 break
-
 
 async def main():
     print("Запуск основного процесса...")
