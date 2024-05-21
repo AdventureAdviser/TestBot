@@ -28,7 +28,7 @@ track_history = defaultdict(lambda: [])
 
 ENABLE_VISUALIZATION = True
 
-def draw_largest_object_line_and_area(frame, boxes):
+def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_threshold):
     height, width, _ = frame.shape
     center_x, center_y = width // 2, height // 2
     largest_area = 0
@@ -50,7 +50,7 @@ def draw_largest_object_line_and_area(frame, boxes):
 
         # Проверяем, пересекается ли луч от центра экрана вниз с объектом
         if x1 <= center_x <= x2 and center_y <= y2:
-            if distance < 100 and largest_area > 2800:
+            if distance < distance_threshold and largest_area > area_threshold:
                 line_color = (0, 255, 0)  # Зеленый цвет
             else:
                 line_color = (135, 206, 235)  # Голубой цвет
@@ -90,6 +90,8 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
                         ENABLE_VISUALIZATION = config_item[1]
 
                 current_scale = configurator.get_scale()
+                area_threshold = configurator.get_area_threshold()
+                distance_threshold = configurator.get_distance_threshold()
 
                 # Масштабируем изображение
                 if current_scale != 1.0:
@@ -113,7 +115,7 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
 
                 # Если включена визуализация, рисуем линию и подписываем площадь для самого большого объекта
                 if ENABLE_VISUALIZATION:
-                    annotated_frame = draw_largest_object_line_and_area(annotated_frame, results[0].boxes.xyxy.cpu().numpy())
+                    annotated_frame = draw_largest_object_line_and_area(annotated_frame, results[0].boxes.xyxy.cpu().numpy(), area_threshold, distance_threshold)
 
                 await frame_queue.put(annotated_frame)
 
