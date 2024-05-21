@@ -45,14 +45,14 @@ def draw_largest_object_line_and_area(frame, boxes):
         object_center_x = (x1 + x2) // 2
         object_center_y = (y1 + y2) // 2
 
-        if object_center_y > center_y:
-            cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), (0, 0, 255), 2)
-            distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
-            cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), (0, 0, 255), 2)
+        distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
+        cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
 
-            cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return frame
+
 
 
 async def capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title="ArkAscended"):
