@@ -27,6 +27,7 @@ configurator = Configurator()
 track_history = defaultdict(lambda: [])
 
 ENABLE_VISUALIZATION = True
+
 def draw_largest_object_line_and_area(frame, boxes):
     height, width, _ = frame.shape
     center_x, center_y = width // 2, height // 2
@@ -45,14 +46,19 @@ def draw_largest_object_line_and_area(frame, boxes):
         object_center_x = (x1 + x2) // 2
         object_center_y = (y1 + y2) // 2
 
-        cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), (0, 0, 255), 2)
+        # Проверяем, пересекается ли луч от центра экрана вниз с объектом
+        if x1 <= center_x <= x2 and center_y <= y2:
+            line_color = (255, 0, 0)  # Голубой цвет
+        else:
+            line_color = (0, 0, 255)  # Красный цвет
+
+        cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), line_color, 2)
         distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
-        cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+        cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, line_color, 2)
 
         cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return frame
-
 
 
 async def capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title="ArkAscended"):
@@ -96,14 +102,12 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
                 # Визуализация треков
                 if results[0].boxes.id is not None:
                     track_ids = results[0].boxes.id.int().cpu().tolist()
-                    centers = [(int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)) for box in
-                               results[0].boxes.xyxy]
+                    centers = [(int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)) for box in results[0].boxes.xyxy]
 
                     for track_id, center in zip(track_ids, centers):
                         track_history[track_id].append(center)
                         for i in range(1, len(track_history[track_id])):
-                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i],
-                                     color=(0, 255, 0), thickness=2)
+                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i], color=(0, 255, 0), thickness=2)
 
                 # Если включена визуализация, рисуем линию и подписываем площадь для самого большого объекта
                 if ENABLE_VISUALIZATION:
@@ -123,7 +127,6 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
             except Exception as e:
                 print(f"Произошла ошибка в захвате видеопотока: {e}")
                 break
-
 
 
 async def main():
