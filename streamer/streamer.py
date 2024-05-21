@@ -1,11 +1,14 @@
 import cv2
-from flask import Flask, render_template, Response, request, jsonify
-import json
+import threading
+import queue
+from flask import Flask, render_template, Response, request
+from configurator.configurator import Configurator
 
 class Streamer:
-    def __init__(self, frame_queue, configurator):
+    def __init__(self, frame_queue, configurator, config_queue):
         self.frame_queue = frame_queue
         self.configurator = configurator
+        self.config_queue = config_queue
 
     def get_frame(self):
         """ Получает кадр из очереди и изменяет его размер в соответствии с текущими настройками """
@@ -15,8 +18,8 @@ class Streamer:
         _, buffer = cv2.imencode('.jpg', frame)
         return buffer.tobytes()
 
-def start_streamer(frame_queue, configurator):
-    streamer = Streamer(frame_queue, configurator)
+def start_streamer(frame_queue, configurator, config_queue):
+    streamer = Streamer(frame_queue, configurator, config_queue)
 
     app = Flask(__name__)
 
@@ -41,12 +44,14 @@ def start_streamer(frame_queue, configurator):
     def set_fps():
         fps = int(request.form['fps'])
         configurator.set_fps(fps)
+        streamer.config_queue.put(('fps', fps))
         return ('', 204)
 
     @app.route('/set_scale', methods=['POST'])
     def set_scale():
         scale = float(request.form['scale'])
         configurator.set_scale(scale)
+        streamer.config_queue.put(('scale', scale))
         return ('', 204)
 
     app.run(host='0.0.0.0', port=5000)

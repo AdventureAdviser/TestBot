@@ -22,9 +22,11 @@ model = YOLO('best.pt')
 model.to('cuda')
 print("Модель YOLO загружена")
 
+# Инициализация конфигуратора
+configurator = Configurator()
 track_history = defaultdict(lambda: [])
 
-async def capture_and_process_window(frame_queue, controller_queue, configurator, window_title="ArkAscended"):
+async def capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title="ArkAscended"):
     """ Захватывает видеопоток из указанного окна, обрабатывает и отправляет в очередь """
     print("Запуск захвата видеопотока...")
     sct = mss()
@@ -39,8 +41,17 @@ async def capture_and_process_window(frame_queue, controller_queue, configurator
                 frame = np.array(screenshot)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 
-                # Масштабируем изображение
+                # Проверяем изменения в конфигурации
+                while not config_queue.empty():
+                    config_item = config_queue.get()
+                    if config_item[0] == 'fps':
+                        configurator.set_fps(config_item[1])
+                    elif config_item[0] == 'scale':
+                        configurator.set_scale(config_item[1])
+
                 current_scale = configurator.get_scale()
+
+                # Масштабируем изображение
                 if current_scale != 1.0:
                     width = int(frame.shape[1] * current_scale)
                     height = int(frame.shape[0] * current_scale)
@@ -53,12 +64,14 @@ async def capture_and_process_window(frame_queue, controller_queue, configurator
                 # Визуализация треков
                 if results[0].boxes.id is not None:
                     track_ids = results[0].boxes.id.int().cpu().tolist()
-                    centers = [(int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)) for box in results[0].boxes.xyxy]
+                    centers = [(int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)) for box in
+                               results[0].boxes.xyxy]
 
                     for track_id, center in zip(track_ids, centers):
                         track_history[track_id].append(center)
                         for i in range(1, len(track_history[track_id])):
-                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i], color=(0, 255, 0), thickness=2)
+                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i],
+                                     color=(0, 255, 0), thickness=2)
 
                 await frame_queue.put(annotated_frame)
 
@@ -67,8 +80,7 @@ async def capture_and_process_window(frame_queue, controller_queue, configurator
 
                 # Вычисляем время захвата и обработки кадра, и спим оставшееся время, чтобы поддерживать текущий фреймрейт
                 elapsed_time = time.time() - start_time
-                current_fps = configurator.get_fps()
-                time_to_wait = max(0, (1.0 / current_fps) - elapsed_time)
+                time_to_wait = max(0, (1.0 / configurator.get_fps()) - elapsed_time)
                 await asyncio.sleep(time_to_wait)
             except asyncio.CancelledError:
                 break
@@ -82,16 +94,14 @@ async def main():
     frame_queue = asyncio.Queue()
     controller_queue = queue.Queue()  # Используем потокобезопасную очередь для контроллера
     frame_queue_for_streamer = queue.Queue()
-
-    # Инициализация конфигуратора
-    configurator = Configurator()
+    config_queue = queue.Queue()
 
     # Запуск контроллера в отдельном потоке
     controller_thread = threading.Thread(target=start_controller, args=(controller_queue,))
     controller_thread.start()
 
     # Запуск стримера в отдельном потоке
-    streamer_thread = threading.Thread(target=start_streamer, args=(frame_queue_for_streamer, configurator))
+    streamer_thread = threading.Thread(target=start_streamer, args=(frame_queue_for_streamer, configurator, config_queue))
     streamer_thread.start()
 
     async def relay_frames():
@@ -101,7 +111,7 @@ async def main():
             if frame is None:
                 break
 
-    capture_task = asyncio.create_task(capture_and_process_window(frame_queue, controller_queue, configurator, window_title))
+    capture_task = asyncio.create_task(capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title))
     relay_task = asyncio.create_task(relay_frames())
 
     try:

@@ -3,8 +3,8 @@ import queue
 
 class Configurator:
     def __init__(self):
-        self.current_fps = 30  # Изначальный фреймрейт
-        self.current_scale = 0.4  # Изначальный масштаб
+        self.current_fps = 60  # Изначальный фреймрейт
+        self.current_scale = 0.6  # Изначальный масштаб
         self.config_queue = queue.Queue()
 
     def set_fps(self, fps):
