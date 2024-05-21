@@ -48,15 +48,15 @@ def draw_largest_object_line_and_area(frame, boxes):
 
         # Проверяем, пересекается ли луч от центра экрана вниз с объектом
         if x1 <= center_x <= x2 and center_y <= y2:
-            line_color = (255, 0, 0)  # Голубой цвет
+            line_color = (255, 182, 193)  # Голубой цвет
         else:
             line_color = (0, 0, 255)  # Красный цвет
 
         cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), line_color, 2)
         distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
-        cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, line_color, 2)
+        cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.75, line_color, 2)
 
-        cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+        cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.75, (50, 205, 50), 2)
 
     return frame
 
@@ -107,7 +107,7 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
                     for track_id, center in zip(track_ids, centers):
                         track_history[track_id].append(center)
                         for i in range(1, len(track_history[track_id])):
-                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i], color=(0, 255, 0), thickness=2)
+                            cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i], color=(50, 205, 50), thickness=2)
 
                 # Если включена визуализация, рисуем линию и подписываем площадь для самого большого объекта
                 if ENABLE_VISUALIZATION:
