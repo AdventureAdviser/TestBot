@@ -48,9 +48,9 @@ def draw_largest_object_line_and_area(frame, boxes):
 
         # Проверяем, пересекается ли луч от центра экрана вниз с объектом
         if x1 <= center_x <= x2 and center_y <= y2:
-            line_color = (255, 182, 193)  # Голубой цвет
+            line_color = (135, 206, 235)  # Голубой цвет
         else:
-            line_color = (0, 0, 255)  # Красный цвет
+            line_color = (255, 99, 71)  # Мягкий красный цвет
 
         cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), line_color, 2)
         distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
