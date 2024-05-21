@@ -26,6 +26,36 @@ print("Модель YOLO загружена")
 configurator = Configurator()
 track_history = defaultdict(lambda: [])
 
+ENABLE_VISUALIZATION = True
+def draw_largest_object_line_and_area(frame, boxes):
+    height, width, _ = frame.shape
+    center_x, center_y = width // 2, height // 2
+    largest_area = 0
+    largest_box = None
+
+    for box in boxes:
+        x1, y1, x2, y2 = map(int, box)
+        area = (x2 - x1) * (y2 - y1)
+        if area > largest_area:
+            largest_area = area
+            largest_box = (x1, y1, x2, y2)
+
+    if largest_box is not None:
+        x1, y1, x2, y2 = largest_box
+        object_center_x = (x1 + x2) // 2
+        object_center_y = (y1 + y2) // 2
+
+        if object_center_y > center_y:
+            cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), (0, 0, 255), 2)
+            distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
+            cv2.putText(frame, f'Distance: {distance}', (object_center_x, object_center_y - 10),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 255), 2)
+
+            cv2.putText(frame, f'Area: {largest_area}', (x1, y1 - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
+
+    return frame
+
+
 async def capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title="ArkAscended"):
     """ Захватывает видеопоток из указанного окна, обрабатывает и отправляет в очередь """
     print("Запуск захвата видеопотока...")
@@ -48,6 +78,9 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
                         configurator.set_fps(config_item[1])
                     elif config_item[0] == 'scale':
                         configurator.set_scale(config_item[1])
+                    elif config_item[0] == 'enable_visualization':
+                        global ENABLE_VISUALIZATION
+                        ENABLE_VISUALIZATION = config_item[1]
 
                 current_scale = configurator.get_scale()
 
@@ -73,6 +106,10 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
                             cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i],
                                      color=(0, 255, 0), thickness=2)
 
+                # Если включена визуализация, рисуем линию и подписываем площадь для самого большого объекта
+                if ENABLE_VISUALIZATION:
+                    annotated_frame = draw_largest_object_line_and_area(annotated_frame, results[0].boxes.xyxy.cpu().numpy())
+
                 await frame_queue.put(annotated_frame)
 
                 # Отправляем результаты в очередь контроллера
@@ -87,6 +124,7 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
             except Exception as e:
                 print(f"Произошла ошибка в захвате видеопотока: {e}")
                 break
+
 
 async def main():
     print("Запуск основного процесса...")
