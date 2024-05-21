@@ -77,15 +77,23 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 
                 # Проверяем изменения в конфигурации
+                clear_queue = False
                 while not config_queue.empty():
                     config_item = config_queue.get()
                     if config_item[0] == 'fps':
                         configurator.set_fps(config_item[1])
+                        clear_queue = True
                     elif config_item[0] == 'scale':
                         configurator.set_scale(config_item[1])
+                        clear_queue = True
                     elif config_item[0] == 'enable_visualization':
                         global ENABLE_VISUALIZATION
                         ENABLE_VISUALIZATION = config_item[1]
+                        clear_queue = True
+
+                if clear_queue:
+                    while not frame_queue.empty():
+                        frame_queue.get()
 
                 current_scale = configurator.get_scale()
 

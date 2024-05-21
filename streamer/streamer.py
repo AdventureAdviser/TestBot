@@ -12,6 +12,19 @@ class Streamer:
 
     def get_frame(self):
         """ Получает кадр из очереди и изменяет его размер в соответствии с текущими настройками """
+        while not self.config_queue.empty():
+            config_item = self.config_queue.get()
+            if config_item[0] == 'fps':
+                self.configurator.set_fps(config_item[1])
+            elif config_item[0] == 'scale':
+                self.configurator.set_scale(config_item[1])
+            elif config_item[0] == 'enable_visualization':
+                global ENABLE_VISUALIZATION
+                ENABLE_VISUALIZATION = config_item[1]
+            # Очистить очередь кадров, чтобы применить новые настройки
+            with self.frame_queue.mutex:
+                self.frame_queue.queue.clear()
+
         frame = self.frame_queue.get()
         if frame is None:
             return None
@@ -55,3 +68,4 @@ def start_streamer(frame_queue, configurator, config_queue):
         return ('', 204)
 
     app.run(host='0.0.0.0', port=5000)
+
