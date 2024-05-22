@@ -51,11 +51,11 @@ def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_thr
         # Проверяем, пересекается ли луч от центра экрана вниз с объектом
         if x1 <= center_x <= x2 and center_y <= y2:
             if distance < distance_threshold and largest_area > area_threshold:
-                line_color = (0, 255, 0)  # Зеленый цвет
+                line_color = (0, 255, 0)  # Зеленый
             else:
-                line_color = (135, 206, 235)  # Голубой цвет
+                line_color = (135, 206, 235)  # Телесный
         else:
-            line_color = (255, 99, 71)  # Мягкий красный цвет
+            line_color = (255, 99, 71)  # Голубой
 
         cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), line_color, 2)
         cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, line_color, 2)
