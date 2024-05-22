@@ -119,9 +119,6 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
 
                 await frame_queue.put(annotated_frame)
 
-                # Отправляем результаты в очередь контроллера
-                controller_queue.put(results[0].boxes)
-
                 # Вычисляем время захвата и обработки кадра, и спим оставшееся время, чтобы поддерживать текущий фреймрейт
                 elapsed_time = time.time() - start_time
                 time_to_wait = max(0, (1.0 / configurator.get_fps()) - elapsed_time)
