@@ -37,6 +37,10 @@ class Controller:
             if command is None:  # Специальный сигнал для завершения работы
                 break
             self.ready = False
+            if command['command'] == 'center_camera':
+                print(f"Отправлена команда на наведение камеры на центр объекта: центр={command['center']}")
+            elif command['command'] == 'move_to_object':
+                print(f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
             self.generate_commands(command)
 
 # Функция для запуска контроллера в отдельном потоке
