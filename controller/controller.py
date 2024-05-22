@@ -11,14 +11,12 @@ class Controller:
 
     def generate_commands(self, command):
         if command['command'] == 'center_camera':
-            print(f"Наведение камеры на центр объекта: {command['center']}")
             self.simulate_centering_camera(command['center'])
         elif command['command'] == 'move_to_object':
-            print(f"Движение к объекту: {command['center']}, дистанция: {command['distance']}")
             self.simulate_moving_to_object(command['center'], command['distance'])
 
     def simulate_centering_camera(self, center):
-        print("Ожидание завершения наведения:")
+        print(f"Наведение камеры на центр объекта: {center}")
         for i in tqdm(range(30, 0, -1), desc="Наведение камеры", unit="сек"):
             time.sleep(1)
         self.ready = True
@@ -26,7 +24,7 @@ class Controller:
         print("Контроллер готов к приему новых команд")
 
     def simulate_moving_to_object(self, center, distance):
-        print("Ожидание завершения движения:")
+        print(f"Движение к объекту: {center}, дистанция: {distance}")
         for i in tqdm(range(30, 0, -1), desc="Движение к объекту", unit="сек"):
             time.sleep(1)
         self.ready = True
