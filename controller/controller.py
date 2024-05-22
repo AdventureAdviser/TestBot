@@ -1,6 +1,7 @@
 import threading
 import queue
 import time
+from tqdm import tqdm
 
 class Controller:
     def __init__(self, controller_queue, response_queue):
@@ -9,7 +10,6 @@ class Controller:
         self.ready = True
 
     def generate_commands(self, command):
-        # Обработка команды от детектора
         if command['command'] == 'center_camera':
             print(f"Наведение камеры на центр объекта: {command['center']}")
             self.simulate_centering_camera(command['center'])
@@ -18,16 +18,16 @@ class Controller:
             self.simulate_moving_to_object(command['center'], command['distance'])
 
     def simulate_centering_camera(self, center):
-        for i in range(30, 0, -1):
-            print(f"Ожидание завершения наведения: {i} секунд")
+        print("Ожидание завершения наведения:")
+        for i in tqdm(range(30, 0, -1), desc="Наведение камеры", unit="сек"):
             time.sleep(1)
         self.ready = True
         self.response_queue.put({'status': 'ready'})
         print("Контроллер готов к приему новых команд")
 
     def simulate_moving_to_object(self, center, distance):
-        for i in range(30, 0, -1):
-            print(f"Ожидание завершения движения: {i} секунд")
+        print("Ожидание завершения движения:")
+        for i in tqdm(range(30, 0, -1), desc="Движение к объекту", unit="сек"):
             time.sleep(1)
         self.ready = True
         self.response_queue.put({'status': 'ready'})
