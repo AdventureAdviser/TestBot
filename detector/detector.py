@@ -62,7 +62,7 @@ def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_thr
         cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return frame
-
+ыав
 async def capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title="ArkAscended"):
     """ Захватывает видеопоток из указанного окна, обрабатывает и отправляет в очередь """
     print("Запуск захвата видеопотока...")
