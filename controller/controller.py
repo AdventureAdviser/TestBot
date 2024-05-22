@@ -1,33 +1,47 @@
 import threading
 import queue
+import time
 
 class Controller:
-    def __init__(self, controller_queue):
+    def __init__(self, controller_queue, response_queue):
         self.controller_queue = controller_queue
+        self.response_queue = response_queue
+        self.ready = True
 
-    def generate_commands(self, data):
-        # Здесь будет код для генерации команд управления
-        # print("Контроллер генерирует команды на основе данных:")
-        commands = []
-        for box in data:
-            coords = box.xyxy.cpu().numpy()
-            if len(coords) == 4:
-                x1, y1, x2, y2 = coords
-                center_x = (x1 + x2) / 2
-                center_y = (y1 + y2) / 2
-                area = (x2 - x1) * (y2 - y1)
-                commands.append({"center_x": center_x, "center_y": center_y, "area": area})
-        return commands
+    def generate_commands(self, command):
+        # Обработка команды от детектора
+        if command['command'] == 'center_camera':
+            print(f"Наведение камеры на центр объекта: {command['center']}")
+            self.simulate_centering_camera(command['center'])
+        elif command['command'] == 'move_to_object':
+            print(f"Движение к объекту: {command['center']}, дистанция: {command['distance']}")
+            self.simulate_moving_to_object(command['center'], command['distance'])
+
+    def simulate_centering_camera(self, center):
+        for i in range(30, 0, -1):
+            print(f"Ожидание завершения наведения: {i} секунд")
+            time.sleep(1)
+        self.ready = True
+        self.response_queue.put({'status': 'ready'})
+        print("Контроллер готов к приему новых команд")
+
+    def simulate_moving_to_object(self, center, distance):
+        for i in range(30, 0, -1):
+            print(f"Ожидание завершения движения: {i} секунд")
+            time.sleep(1)
+        self.ready = True
+        self.response_queue.put({'status': 'ready'})
+        print("Контроллер готов к приему новых команд")
 
     def run(self):
         while True:
-            data = self.controller_queue.get()
-            if data is None:  # Специальный сигнал для завершения работы
+            command = self.controller_queue.get()
+            if command is None:  # Специальный сигнал для завершения работы
                 break
-            self.generate_commands(data)
-            # print("Контроллер получил данные и сгенерировал команды")
+            self.ready = False
+            self.generate_commands(command)
 
 # Функция для запуска контроллера в отдельном потоке
-def start_controller(controller_queue):
-    controller = Controller(controller_queue)
+def start_controller(controller_queue, response_queue):
+    controller = Controller(controller_queue, response_queue)
     controller.run()

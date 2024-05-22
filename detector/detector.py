@@ -27,12 +27,14 @@ configurator = Configurator()
 track_history = defaultdict(lambda: [])
 
 ENABLE_VISUALIZATION = True
+CONTROLLER_READY = True
 
-def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_threshold):
+def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_threshold, controller_queue):
     height, width, _ = frame.shape
     center_x, center_y = width // 2, height // 2
     largest_area = 0
     largest_box = None
+    global CONTROLLER_READY
 
     for box in boxes:
         x1, y1, x2, y2 = map(int, box)
@@ -54,16 +56,26 @@ def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_thr
                 line_color = (0, 255, 0)  # Зеленый
             else:
                 line_color = (135, 206, 235)  # Телесный
+                if CONTROLLER_READY:
+                    command = {'command': 'move_to_object', 'center': (object_center_x, object_center_y), 'distance': distance}
+                    controller_queue.put(command)
+                    CONTROLLER_READY = False
+                    print(f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
         else:
             line_color = (255, 99, 71)  # Голубой
+            if CONTROLLER_READY:
+                command = {'command': 'center_camera', 'center': (object_center_x, object_center_y)}
+                controller_queue.put(command)
+                CONTROLLER_READY = False
+                print(f"Отправлена команда на наведение камеры на центр объекта: {command['center']}")
 
         cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), line_color, 2)
         cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, line_color, 2)
         cv2.putText(frame, f'Area: {largest_area}', (x1, y2 + 20), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0), 2)
 
     return frame
-ыав
-async def capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title="ArkAscended"):
+
+async def capture_and_process_window(frame_queue, controller_queue, response_queue, config_queue, configurator, window_title="ArkAscended"):
     """ Захватывает видеопоток из указанного окна, обрабатывает и отправляет в очередь """
     print("Запуск захвата видеопотока...")
     sct = mss()
@@ -115,9 +127,17 @@ async def capture_and_process_window(frame_queue, controller_queue, config_queue
 
                 # Если включена визуализация, рисуем линию и подписываем площадь для самого большого объекта
                 if ENABLE_VISUALIZATION:
-                    annotated_frame = draw_largest_object_line_and_area(annotated_frame, results[0].boxes.xyxy.cpu().numpy(), area_threshold, distance_threshold)
+                    annotated_frame = draw_largest_object_line_and_area(annotated_frame, results[0].boxes.xyxy.cpu().numpy(), area_threshold, distance_threshold, controller_queue)
 
                 await frame_queue.put(annotated_frame)
+
+                # Проверка ответа от контроллера
+                while not response_queue.empty():
+                    response = response_queue.get()
+                    if response['status'] == 'ready':
+                        global CONTROLLER_READY
+                        CONTROLLER_READY = True
+                        print("Детектор получил уведомление о готовности от контроллера")
 
                 # Вычисляем время захвата и обработки кадра, и спим оставшееся время, чтобы поддерживать текущий фреймрейт
                 elapsed_time = time.time() - start_time
@@ -134,11 +154,12 @@ async def main():
     window_title = "ArkAscended"
     frame_queue = asyncio.Queue()
     controller_queue = queue.Queue()  # Используем потокобезопасную очередь для контроллера
+    response_queue = queue.Queue()
     frame_queue_for_streamer = queue.Queue()
     config_queue = queue.Queue()
 
     # Запуск контроллера в отдельном потоке
-    controller_thread = threading.Thread(target=start_controller, args=(controller_queue,))
+    controller_thread = threading.Thread(target=start_controller, args=(controller_queue, response_queue))
     controller_thread.start()
 
     # Запуск стримера в отдельном потоке
@@ -152,7 +173,7 @@ async def main():
             if frame is None:
                 break
 
-    capture_task = asyncio.create_task(capture_and_process_window(frame_queue, controller_queue, config_queue, configurator, window_title))
+    capture_task = asyncio.create_task(capture_and_process_window(frame_queue, controller_queue, response_queue, config_queue, configurator, window_title))
     relay_task = asyncio.create_task(relay_frames())
 
     try:
