@@ -50,10 +50,14 @@ def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_thr
 
         distance = int(((center_x - object_center_x) ** 2 + (center_y - object_center_y) ** 2) ** 0.5)
 
-        # Проверяем, пересекается ли луч от центра экрана вниз с объектом
         if x1 <= center_x <= x2 and center_y <= y2:
             if distance < distance_threshold and largest_area > area_threshold:
                 line_color = (0, 255, 0)  # Зеленый
+                if CONTROLLER_READY:
+                    command = {'command': 'start_farming', 'center': (object_center_x, object_center_y)}
+                    controller_queue.put(command)
+                    CONTROLLER_READY = False
+                    print(f"Отправлена команда на фарм объекта: центр={command['center']}")
             else:
                 line_color = (135, 206, 235)  # Телесный
                 if CONTROLLER_READY:
@@ -76,7 +80,6 @@ def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_thr
     return frame
 
 async def capture_and_process_window(frame_queue, controller_queue, response_queue, config_queue, configurator, window_title="ArkAscended"):
-    """ Захватывает видеопоток из указанного окна, обрабатывает и отправляет в очередь """
     print("Запуск захвата видеопотока...")
     sct = mss()
     window = gw.getWindowsWithTitle(window_title)[0]
@@ -90,7 +93,6 @@ async def capture_and_process_window(frame_queue, controller_queue, response_que
                 frame = np.array(screenshot)
                 frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)
 
-                # Проверяем изменения в конфигурации
                 while not config_queue.empty():
                     config_item = config_queue.get()
                     if config_item[0] == 'fps':
@@ -105,17 +107,14 @@ async def capture_and_process_window(frame_queue, controller_queue, response_que
                 area_threshold = configurator.get_area_threshold()
                 distance_threshold = configurator.get_distance_threshold()
 
-                # Масштабируем изображение
                 if current_scale != 1.0:
                     width = int(frame.shape[1] * current_scale)
                     height = int(frame.shape[0] * current_scale)
                     frame = cv2.resize(frame, (width, height), interpolation=cv2.INTER_LINEAR)
 
-                # Обрабатываем кадр с использованием модели YOLOv8 на GPU и трекера ByteTrack
                 results = model.track(frame, device=0, workers=12, tracker='bytetrack.yaml', persist=True, verbose=False)
                 annotated_frame = results[0].plot()
 
-                # Визуализация треков
                 if results[0].boxes.id is not None:
                     track_ids = results[0].boxes.id.int().cpu().tolist()
                     centers = [(int((box[0] + box[2]) / 2), int((box[1] + box[3]) / 2)) for box in results[0].boxes.xyxy]
@@ -125,13 +124,11 @@ async def capture_and_process_window(frame_queue, controller_queue, response_que
                         for i in range(1, len(track_history[track_id])):
                             cv2.line(annotated_frame, track_history[track_id][i - 1], track_history[track_id][i], color=(0, 255, 0), thickness=2)
 
-                # Если включена визуализация, рисуем линию и подписываем площадь для самого большого объекта
                 if ENABLE_VISUALIZATION:
                     annotated_frame = draw_largest_object_line_and_area(annotated_frame, results[0].boxes.xyxy.cpu().numpy(), area_threshold, distance_threshold, controller_queue)
 
                 await frame_queue.put(annotated_frame)
 
-                # Проверка ответа от контроллера
                 while not response_queue.empty():
                     response = response_queue.get()
                     if response['status'] == 'ready':
@@ -139,7 +136,6 @@ async def capture_and_process_window(frame_queue, controller_queue, response_que
                         CONTROLLER_READY = True
                         print("Детектор получил уведомление о готовности от контроллера")
 
-                # Вычисляем время захвата и обработки кадра, и спим оставшееся время, чтобы поддерживать текущий фреймрейт
                 elapsed_time = time.time() - start_time
                 time_to_wait = max(0, (1.0 / configurator.get_fps()) - elapsed_time)
                 await asyncio.sleep(time_to_wait)
@@ -153,16 +149,14 @@ async def main():
     print("Запуск основного процесса...")
     window_title = "ArkAscended"
     frame_queue = asyncio.Queue()
-    controller_queue = queue.Queue()  # Используем потокобезопасную очередь для контроллера
+    controller_queue = queue.Queue()
     response_queue = queue.Queue()
     frame_queue_for_streamer = queue.Queue()
     config_queue = queue.Queue()
 
-    # Запуск контроллера в отдельном потоке
     controller_thread = threading.Thread(target=start_controller, args=(controller_queue, response_queue))
     controller_thread.start()
 
-    # Запуск стримера в отдельном потоке
     streamer_thread = threading.Thread(target=start_streamer, args=(frame_queue_for_streamer, configurator, config_queue))
     streamer_thread.start()
 
@@ -184,11 +178,9 @@ async def main():
         await capture_task
         await relay_task
 
-    # Завершение работы контроллера
     controller_queue.put(None)
     controller_thread.join()
 
-    # Завершение работы стримера
     frame_queue_for_streamer.put(None)
     streamer_thread.join()
 
