@@ -2,12 +2,15 @@ import threading
 import queue
 import time
 from tqdm import tqdm
+from ahk import AHK
+
 
 class Controller:
     def __init__(self, controller_queue, response_queue):
         self.controller_queue = controller_queue
         self.response_queue = response_queue
         self.ready = True
+        self.ahk = AHK()
 
     def generate_commands(self, command):
         if command['command'] == 'center_camera':
@@ -19,8 +22,23 @@ class Controller:
 
     def simulate_centering_camera(self, center):
         print(f"Наведение камеры на центр объекта: {center}")
-        for i in tqdm(range(30, 0, -1), desc="Наведение камеры", unit="сек"):
-            time.sleep(1)
+
+        # Получаем текущую позицию мыши
+        current_pos = self.ahk.mouse_position
+
+        # Вычисляем вектор смещения
+        dx = center[0] - current_pos[0]
+        dy = center[1] - current_pos[1]
+
+        # Плавное перемещение мыши
+        steps = 100  # Увеличено количество шагов для более плавного перемещения
+        for step in range(steps):
+            new_x = current_pos[0] + (dx * (step + 1) / steps)
+            new_y = current_pos[1] + (dy * (step + 1) / steps)
+            self.ahk.mouse_move(x=new_x, y=new_y, blocking=True)
+            time.sleep(0.01)  # Уменьшена задержка для более плавного перемещения
+
+        # Завершение наведения
         self.ready = True
         self.response_queue.put({'status': 'ready'})
         print("Контроллер готов к приему новых команд")
@@ -50,10 +68,12 @@ class Controller:
             if command['command'] == 'center_camera':
                 print(f"Отправлена команда на наведение камеры на центр объекта: центр={command['center']}")
             elif command['command'] == 'move_to_object':
-                print(f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
+                print(
+                    f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
             elif command['command'] == 'start_farming':
                 print(f"Отправлена команда на фарм объекта: центр={command['center']}")
             self.generate_commands(command)
+
 
 # Функция для запуска контроллера в отдельном потоке
 def start_controller(controller_queue, response_queue):
