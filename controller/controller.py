@@ -4,13 +4,13 @@ import time
 from tqdm import tqdm
 from ahk import AHK
 
+ahk = AHK()
 
 class Controller:
     def __init__(self, controller_queue, response_queue):
         self.controller_queue = controller_queue
         self.response_queue = response_queue
         self.ready = True
-        self.ahk = AHK()
 
     def generate_commands(self, command):
         if command['command'] == 'center_camera':
@@ -23,22 +23,21 @@ class Controller:
     def simulate_centering_camera(self, center):
         print(f"Наведение камеры на центр объекта: {center}")
 
-        # Получаем текущую позицию мыши
-        current_pos = self.ahk.mouse_position
+        object_center_x, object_center_y = center
+        screen_width, screen_height = 1280, 720
+        window_center_x, window_center_y = screen_width // 2, screen_height // 2
 
-        # Вычисляем вектор смещения
-        dx = center[0] - current_pos[0]
-        dy = center[1] - current_pos[1]
+        # Смещения от центра экрана до центра объекта
+        offset_x = object_center_x - window_center_x
+        offset_y = object_center_y - window_center_y
 
-        # Плавное перемещение мыши
-        steps = 100  # Увеличено количество шагов для более плавного перемещения
-        for step in range(steps):
-            new_x = current_pos[0] + (dx * (step + 1) / steps)
-            new_y = current_pos[1] + (dy * (step + 1) / steps)
-            self.ahk.mouse_move(x=new_x, y=new_y, blocking=True)
-            time.sleep(0.01)  # Уменьшена задержка для более плавного перемещения
+        # Двигаем мышь в сторону центра объекта
+        ahk.mouse_move(x=offset_x // 10, y=offset_y // 10, speed=300, relative=True)
+        # time.sleep(0.5)  # Небольшая задержка
 
-        # Завершение наведения
+        # for i in tqdm(range(5, 0, -1), desc="Тестовый отсчет", unit="сек"):
+        #     time.sleep(1)
+
         self.ready = True
         self.response_queue.put({'status': 'ready'})
         print("Контроллер готов к приему новых команд")
@@ -62,20 +61,17 @@ class Controller:
     def run(self):
         while True:
             command = self.controller_queue.get()
-            if command is None:  # Специальный сигнал для завершения работы
+            if command is None:
                 break
             self.ready = False
             if command['command'] == 'center_camera':
                 print(f"Отправлена команда на наведение камеры на центр объекта: центр={command['center']}")
             elif command['command'] == 'move_to_object':
-                print(
-                    f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
+                print(f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
             elif command['command'] == 'start_farming':
                 print(f"Отправлена команда на фарм объекта: центр={command['center']}")
             self.generate_commands(command)
 
-
-# Функция для запуска контроллера в отдельном потоке
 def start_controller(controller_queue, response_queue):
     controller = Controller(controller_queue, response_queue)
     controller.run()

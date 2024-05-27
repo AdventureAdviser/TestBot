@@ -1,50 +1,53 @@
-import cv2
-import numpy as np
-import pygetwindow as gw
-from mss import mss
+from ahk import AHK
+import time
+import keyboard  # Используем библиотеку keyboard для отслеживания нажатия клавиш
 
-def list_windows():
-    """ Печатает список всех открытых окон """
-    windows = gw.getAllTitles()
-    return [window for window in windows if window]
+ahk = AHK()
 
-def select_window(window_title):
-    """ Захватывает и отображает поток из выбранного окна в реальном времени """
-    sct = mss()
-    while True:
-        try:
-            # Получение информации о размерах и позиции окна
-            window = gw.getWindowsWithTitle(window_title)[0]
-            if window:
-                window.restore()
-                monitor = {"top": window.top, "left": window.left, "width": window.width, "height": window.height}
+def test_mouse_sensitivity():
+    # Устанавливаем начальные координаты в (0, 0)
+    # ahk.mouse_move(0, 0, blocking=True)
+    # time.sleep(1)  # Ждем стабилизации
 
-                # Скриншот выбранной области
-                screenshot = sct.grab(monitor)
-                frame = np.array(screenshot)
-                frame = cv2.cvtColor(frame, cv2.COLOR_BGRA2BGR)  # Обратите внимание на использование BGRA
+    # Запоминаем начальные координаты
+    start_pos = ahk.mouse_position
+    print(f"Начальная позиция: {start_pos}")
 
-                # Показать кадр
-                cv2.imshow('Window Stream', frame)
+    # Перемещаем мышь медленно на 100 пикселей по оси Y с шагами по 5 пикселей
+    steps = 5
+    total_move = 0
+    for _ in range(20):  # 20 шагов по 5 пикселей = 100 пикселей
+        ahk.mouse_move(0, steps, relative=True, blocking=True)
+        total_move += steps
+        time.sleep(0.1)  # Небольшая пауза между шагами
+        current_pos = ahk.mouse_position
+        print(f"Текущая позиция: {current_pos}, Общее перемещение: {total_move}")
 
-                # Завершение цикла по нажатию 'q'
-                if cv2.waitKey(1) & 0xFF == ord('q'):
-                    break
-        except Exception as e:
-            print(f"Произошла ошибка: {e}")
-            break
+    time.sleep(1)  # Ждем стабилизации
 
-    cv2.destroyAllWindows()
+    # Запоминаем конечные координаты
+    end_pos = ahk.mouse_position
+    print(f"Конечная позиция: {end_pos}")
 
-# Получение списка окон
-windows = list_windows()
-print("Доступные окна:")
-for i, window in enumerate(windows):
-    print(f"{i + 1}: {window}")
+    # Вычисляем реальное перемещение по оси Y
+    real_move_y = end_pos[1] - start_pos[1]
 
-# Пользователь вводит номер нужного окна
-selected_index = int(input("Введите номер окна для захвата: ")) - 1
-selected_window = windows[selected_index]
+    # Проверяем, совпадает ли реальное перемещение с ожидаемым
+    expected_move = 100
+    if real_move_y == expected_move:
+        print(f"Перемещение совпадает: {real_move_y} пикселей")
+    else:
+        print(f"Перемещение не совпадает. Реальное перемещение: {real_move_y} пикселей, Ожидаемое: {expected_move} пикселей")
 
-# Запуск захвата изображения из окна
-select_window(selected_window)
+    # Возвращаем курсор на начальную позицию
+    ahk.mouse_move(start_pos[0], start_pos[1], blocking=True)
+
+def on_key(event):
+    if event.name == '1':
+        test_mouse_sensitivity()
+
+if __name__ == '__main__':
+    print("Нажмите клавишу 1 для начала тестирования.")
+    keyboard.on_press(on_key)
+    keyboard.wait('esc')  # Скрипт будет работать до нажатия клавиши ESC
+self.controller_queue.queue.clear()
