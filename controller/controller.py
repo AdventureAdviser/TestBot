@@ -32,7 +32,7 @@ class Controller:
         offset_y = object_center_y - window_center_y
 
         # Двигаем мышь в сторону центра объекта
-        ahk.mouse_move(x=offset_x // 10, y=offset_y // 10, speed=300, relative=True)
+        ahk.mouse_move(x=offset_x, y=offset_y, speed=1000, relative=True)
         # time.sleep(0.5)  # Небольшая задержка
 
         # for i in tqdm(range(5, 0, -1), desc="Тестовый отсчет", unit="сек"):
