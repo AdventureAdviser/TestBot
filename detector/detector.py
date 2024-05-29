@@ -154,7 +154,7 @@ async def main():
     frame_queue_for_streamer = queue.Queue()
     config_queue = queue.Queue()
 
-    controller_thread = threading.Thread(target=start_controller, args=(controller_queue, response_queue))
+    controller_thread = threading.Thread(target=start_controller, args=(controller_queue, response_queue, configurator))
     controller_thread.start()
 
     streamer_thread = threading.Thread(target=start_streamer, args=(frame_queue_for_streamer, configurator, config_queue))

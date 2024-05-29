@@ -6,7 +6,7 @@ class Configurator:
         self.current_fps = 30  # Изначальный фреймрейт
         self.current_scale = 1  # Изначальный масштаб
         self.area_threshold = 2800  # Изначальный порог площади
-        self.distance_threshold = 100  # Изначальный порог расстояния
+        self.distance_threshold = 150  # Изначальный порог расстояния
         self.config_queue = queue.Queue()
 
     def set_fps(self, fps):
