@@ -42,7 +42,7 @@ class Controller:
             # Наведение мыши на центр объекта быстрее и плавнее
             steps = 100  # Уменьшаем количество шагов для плавности и быстроты
             for i in range(steps):
-                ahk.mouse_move(x=offset_x // steps, y=offset_y // steps, speed=0, relative=True)  # Увеличиваем скорость
+                ahk.mouse_move(x=offset_x // steps, y=offset_y // steps, speed=1, relative=True)  # Увеличиваем скорость
 
                 # Очищаем очередь и отправляем сигнал о готовности перед проверкой новых команд
                 with self.controller_queue.mutex:
