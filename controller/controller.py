@@ -78,6 +78,15 @@ class Controller:
     def simulate_moving_to_object(self, center, distance):
         print(f"Движение к объекту: {center}, дистанция: {distance}")
 
+        # Проверка, зажаты ли клавиши "w" и "shift"
+        if not ahk.key_state('w', mode='P'):
+            ahk.key_down('w')
+            print("Кнопка 'w' зажата")
+
+        if not ahk.key_state('shift', mode='P'):
+            ahk.key_down('shift')
+            print("Кнопка 'shift' зажата")
+
         self.current_center = center
 
         screen_width, screen_height = 1280, 720
@@ -107,6 +116,10 @@ class Controller:
                         break
             else:
                 completed = True
+
+        # Отпускаем кнопку "shift"
+        ahk.key_up('shift')
+        print("Кнопка 'shift' отпущена")
 
         self.ready = True
         self.response_queue.put({'status': 'ready'})

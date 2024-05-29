@@ -54,7 +54,7 @@ def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_thr
             if distance < distance_threshold and largest_area > area_threshold:
                 line_color = (0, 255, 0)  # Зеленый
                 if CONTROLLER_READY:
-                    command = {'command': 'start_farming', 'center': (object_center_x, object_center_y)}
+                    command = {'command': 'farm_object', 'center': (object_center_x, object_center_y)}
                     controller_queue.put(command)
                     CONTROLLER_READY = False
                     print(f"Отправлена команда на фарм объекта: центр={command['center']}")
