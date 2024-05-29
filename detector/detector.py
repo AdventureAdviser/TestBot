@@ -57,21 +57,21 @@ def draw_largest_object_line_and_area(frame, boxes, area_threshold, distance_thr
                     command = {'command': 'farm_object', 'center': (object_center_x, object_center_y)}
                     controller_queue.put(command)
                     CONTROLLER_READY = False
-                    print(f"Отправлена команда на фарм объекта: центр={command['center']}")
+                    # print(f"Отправлена команда на фарм объекта: центр={command['center']}")
             else:
                 line_color = (135, 206, 235)  # Телесный
                 if CONTROLLER_READY:
                     command = {'command': 'move_to_object', 'center': (object_center_x, object_center_y), 'distance': distance}
                     controller_queue.put(command)
                     CONTROLLER_READY = False
-                    print(f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
+                    # print(f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
         else:
             line_color = (255, 99, 71)  # Голубой
             if CONTROLLER_READY:
                 command = {'command': 'center_camera', 'center': (object_center_x, object_center_y)}
                 controller_queue.put(command)
                 CONTROLLER_READY = False
-                print(f"Отправлена команда на наведение камеры на центр объекта: {command['center']}")
+                # print(f"Отправлена команда на наведение камеры на центр объекта: {command['center']}")
 
         cv2.line(frame, (center_x, center_y), (object_center_x, object_center_y), line_color, 2)
         cv2.putText(frame, f'Distance: {distance}', (center_x - 50, center_y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, line_color, 2)
@@ -134,7 +134,7 @@ async def capture_and_process_window(frame_queue, controller_queue, response_que
                     if response['status'] == 'ready':
                         global CONTROLLER_READY
                         CONTROLLER_READY = True
-                        print("Детектор получил уведомление о готовности от контроллера")
+                        # print("Детектор получил уведомление о готовности от контроллера")
 
                 elapsed_time = time.time() - start_time
                 time_to_wait = max(0, (1.0 / configurator.get_fps()) - elapsed_time)

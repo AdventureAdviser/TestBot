@@ -106,10 +106,23 @@ class Controller:
                     if not ahk.key_state('x', mode='P'):
                         ahk.key_down('x')
                         print("Кнопка 'x' зажата")
+                    if ahk.key_state('c', mode='P'):
+                        ahk.key_up('c')
+                        print("Кнопка 'c' отпущена")
+                elif offset_y < 0:
+                    if not ahk.key_state('c', mode='P'):
+                        ahk.key_down('c')
+                        print("Кнопка 'c' зажата")
+                    if ahk.key_state('x', mode='P'):
+                        ahk.key_up('x')
+                        print("Кнопка 'x' отпущена")
                 else:
                     if ahk.key_state('x', mode='P'):
                         ahk.key_up('x')
                         print("Кнопка 'x' отпущена")
+                    if ahk.key_state('c', mode='P'):
+                        ahk.key_up('c')
+                        print("Кнопка 'c' отпущена")
 
                 with self.controller_queue.mutex:
                     self.controller_queue.queue.clear()
@@ -127,9 +140,17 @@ class Controller:
             else:
                 completed = True
 
-        # Отпускаем кнопку "shift"
+        # Отпускаем кнопки "shift", "x" и "c"
         ahk.key_up('shift')
         print("Кнопка 'shift' отпущена")
+
+        if ahk.key_state('x', mode='P'):
+            ahk.key_up('x')
+            print("Кнопка 'x' отпущена")
+
+        if ahk.key_state('c', mode='P'):
+            ahk.key_up('c')
+            print("Кнопка 'c' отпущена")
 
         self.ready = True
         self.response_queue.put({'status': 'ready'})
