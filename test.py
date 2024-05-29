@@ -1,53 +1,93 @@
-from ahk import AHK
+import asyncio
+import threading
+import queue
 import time
-import keyboard  # Используем библиотеку keyboard для отслеживания нажатия клавиш
+from tqdm import tqdm
+from ahk import AHK
 
 ahk = AHK()
 
-def test_mouse_sensitivity():
-    # Устанавливаем начальные координаты в (0, 0)
-    # ahk.mouse_move(0, 0, blocking=True)
-    # time.sleep(1)  # Ждем стабилизации
+current_command = None
+current_center = None
 
-    # Запоминаем начальные координаты
-    start_pos = ahk.mouse_position
-    print(f"Начальная позиция: {start_pos}")
+class Controller:
+    def __init__(self, controller_queue, response_queue):
+        self.controller_queue = controller_queue
+        self.response_queue = response_queue
+        self.ready = True
 
-    # Перемещаем мышь медленно на 100 пикселей по оси Y с шагами по 5 пикселей
-    steps = 5
-    total_move = 0
-    for _ in range(20):  # 20 шагов по 5 пикселей = 100 пикселей
-        ahk.mouse_move(0, steps, relative=True, blocking=True)
-        total_move += steps
-        time.sleep(0.1)  # Небольшая пауза между шагами
-        current_pos = ahk.mouse_position
-        print(f"Текущая позиция: {current_pos}, Общее перемещение: {total_move}")
+    def generate_commands(self, command):
+        if command['command'] == 'center_camera':
+            self.simulate_centering_camera(command['center'])
+        elif command['command'] == 'move_to_object':
+            self.simulate_moving_to_object(command['center'], command['distance'])
+        elif command['command'] == 'start_farming':
+            self.simulate_farming(command['center'])
 
-    time.sleep(1)  # Ждем стабилизации
+    async def continuous_command_execution(self, command):
+        global current_command, current_center
+        while current_command == command['command']:
+            with self.controller_queue.mutex:
+                self.controller_queue.queue.clear()
+            self.response_queue.put({'status': 'ready'})
+            if not self.controller_queue.empty():
+                new_command = self.controller_queue.get()
+                current_command = new_command['command']
+                current_center = new_command['center']
+            await asyncio.sleep(0.1)  # Небольшая задержка для предотвращения слишком частого выполнения
 
-    # Запоминаем конечные координаты
-    end_pos = ahk.mouse_position
-    print(f"Конечная позиция: {end_pos}")
+    def simulate_centering_camera(self, center):
+        print(f"Наведение камеры на центр объекта: {center}")
 
-    # Вычисляем реальное перемещение по оси Y
-    real_move_y = end_pos[1] - start_pos[1]
+        object_center_x, object_center_y = center
+        screen_width, screen_height = 1280, 720
+        window_center_x, window_center_y = screen_width // 2, screen_height // 2
 
-    # Проверяем, совпадает ли реальное перемещение с ожидаемым
-    expected_move = 100
-    if real_move_y == expected_move:
-        print(f"Перемещение совпадает: {real_move_y} пикселей")
-    else:
-        print(f"Перемещение не совпадает. Реальное перемещение: {real_move_y} пикселей, Ожидаемое: {expected_move} пикселей")
+        # Смещения от центра экрана до центра объекта
+        offset_x = object_center_x - window_center_x
+        offset_y = object_center_y - window_center_y
 
-    # Возвращаем курсор на начальную позицию
-    ahk.mouse_move(start_pos[0], start_pos[1], blocking=True)
+        # Двигаем мышь в сторону центра объекта
+        ahk.mouse_move(x=offset_x, y=offset_y, speed=1000, relative=True)
+        # time.sleep(0.5)  # Небольшая задержка
 
-def on_key(event):
-    if event.name == '1':
-        test_mouse_sensitivity()
+        # for i in tqdm(range(5, 0, -1), desc="Тестовый отсчет", unit="сек"):
+        #     time.sleep(1)
 
-if __name__ == '__main__':
-    print("Нажмите клавишу 1 для начала тестирования.")
-    keyboard.on_press(on_key)
-    keyboard.wait('esc')  # Скрипт будет работать до нажатия клавиши ESC
-self.controller_queue.queue.clear()
+        self.ready = True
+        self.response_queue.put({'status': 'ready'})
+        print("Контроллер готов к приему новых команд")
+
+    def simulate_moving_to_object(self, center, distance):
+        print(f"Движение к объекту: {center}, дистанция: {distance}")
+        for i in tqdm(range(30, 0, -1), desc="Движение к объекту", unit="сек"):
+            time.sleep(1)
+        self.ready = True
+        self.response_queue.put({'status': 'ready'})
+        print("Контроллер готов к приему новых команд")
+
+    def simulate_farming(self, center):
+        print(f"Фарм объекта: {center}")
+        for i in tqdm(range(30, 0, -1), desc="Фарм объекта", unit="сек"):
+            time.sleep(1)
+        self.ready = True
+        self.response_queue.put({'status': 'ready'})
+        print("Контроллер готов к приему новых команд")
+
+    def run(self):
+        while True:
+            command = self.controller_queue.get()
+            if command is None:
+                break
+            self.ready = False
+            if command['command'] == 'center_camera':
+                print(f"Отправлена команда на наведение камеры на центр объекта: центр={command['center']}")
+            elif command['command'] == 'move_to_object':
+                print(f"Отправлена команда на движение к объекту: центр={command['center']}, дистанция={command['distance']}")
+            elif command['command'] == 'start_farming':
+                print(f"Отправлена команда на фарм объекта: центр={command['center']}")
+            self.generate_commands(command)
+
+def start_controller(controller_queue, response_queue):
+    controller = Controller(controller_queue, response_queue)
+    controller.run()
