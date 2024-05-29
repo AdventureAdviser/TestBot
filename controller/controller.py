@@ -46,9 +46,32 @@ class Controller:
             offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
 
             # Наведение мыши на центр объекта быстрее и плавнее
-            steps = 80  # Уменьшаем количество шагов для плавности и быстроты
+            steps = 50  # Уменьшаем количество шагов для плавности и быстроты
             for i in range(steps):
                 ahk.mouse_move(x=offset_x // steps, y=offset_y // steps, speed=1, relative=True)
+
+                # Управление поворотами камеры налево и направо
+                if offset_x > 0:
+                    if not ahk.key_state('d', mode='P'):
+                        ahk.key_down('d')
+                        print("Кнопка 'd' зажата")
+                    if ahk.key_state('a', mode='P'):
+                        ahk.key_up('a')
+                        print("Кнопка 'a' отпущена")
+                elif offset_x < 0:
+                    if not ahk.key_state('a', mode='P'):
+                        ahk.key_down('a')
+                        print("Кнопка 'a' зажата")
+                    if ahk.key_state('d', mode='P'):
+                        ahk.key_up('d')
+                        print("Кнопка 'd' отпущена")
+                else:
+                    if ahk.key_state('d', mode='P'):
+                        ahk.key_up('d')
+                        print("Кнопка 'd' отпущена")
+                    if ahk.key_state('a', mode='P'):
+                        ahk.key_up('a')
+                        print("Кнопка 'a' отпущена")
 
                 # Очищаем очередь и отправляем сигнал о готовности перед проверкой новых команд
                 with self.controller_queue.mutex:
@@ -68,6 +91,14 @@ class Controller:
             else:
                 # Если цикл for завершился без прерывания, то наведение завершено
                 completed = True
+
+        # Отпускаем кнопки "a" и "d" по завершению функции
+        if ahk.key_state('d', mode='P'):
+            ahk.key_up('d')
+            print("Кнопка 'd' отпущена")
+        if ahk.key_state('a', mode='P'):
+            ahk.key_up('a')
+            print("Кнопка 'a' отпущена")
 
         self.ready = True
         with self.controller_queue.mutex:
@@ -97,7 +128,7 @@ class Controller:
         while not completed:
             offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
 
-            steps = 80
+            steps = 50
             for i in range(steps):
                 ahk.mouse_move(x=0, y=offset_y // steps, speed=1, relative=True)
 
