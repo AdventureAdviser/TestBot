@@ -30,6 +30,10 @@ class Controller:
             ahk.key_down('w')
             print("Кнопка 'w' зажата")
 
+        if not ahk.key_state('shift', mode='P'):
+            ahk.key_down('shift')
+            print("Кнопка 'shift' зажата")
+
         # Обновляем текущие координаты центра объекта
         self.current_center = center
 
@@ -73,6 +77,28 @@ class Controller:
                         ahk.key_up('a')
                         print("Кнопка 'a' отпущена")
 
+                if offset_y > 0:
+                    if not ahk.key_state('x', mode='P'):
+                        ahk.key_down('x')
+                        print("Кнопка 'x' зажата")
+                    if ahk.key_state('c', mode='P'):
+                        ahk.key_up('c')
+                        print("Кнопка 'c' отпущена")
+                elif offset_y < 0:
+                    if not ahk.key_state('c', mode='P'):
+                        ahk.key_down('c')
+                        print("Кнопка 'c' зажата")
+                    if ahk.key_state('x', mode='P'):
+                        ahk.key_up('x')
+                        print("Кнопка 'x' отпущена")
+                else:
+                    if ahk.key_state('x', mode='P'):
+                        ahk.key_up('x')
+                        print("Кнопка 'x' отпущена")
+                    if ahk.key_state('c', mode='P'):
+                        ahk.key_up('c')
+                        print("Кнопка 'c' отпущена")
+
                 # Очищаем очередь и отправляем сигнал о готовности перед проверкой новых команд
                 with self.controller_queue.mutex:
                     self.controller_queue.queue.clear()
@@ -92,6 +118,9 @@ class Controller:
                 # Если цикл for завершился без прерывания, то наведение завершено
                 completed = True
 
+        # Отпускаем кнопки "shift", "x" и "c"
+        ahk.key_up('shift')
+        print("Кнопка 'shift' отпущена")
         # Отпускаем кнопки "a" и "d" по завершению функции
         if ahk.key_state('d', mode='P'):
             ahk.key_up('d')
@@ -99,6 +128,14 @@ class Controller:
         if ahk.key_state('a', mode='P'):
             ahk.key_up('a')
             print("Кнопка 'a' отпущена")
+
+        if ahk.key_state('x', mode='P'):
+            ahk.key_up('x')
+            print("Кнопка 'x' отпущена")
+
+        if ahk.key_state('c', mode='P'):
+            ahk.key_up('c')
+            print("Кнопка 'c' отпущена")
 
         self.ready = True
         with self.controller_queue.mutex:
@@ -114,9 +151,9 @@ class Controller:
             ahk.key_down('w')
             print("Кнопка 'w' зажата")
 
-        if not ahk.key_state('shift', mode='P'):
-            ahk.key_down('shift')
-            print("Кнопка 'shift' зажата")
+        # if not ahk.key_state('shift', mode='P'):
+        #     ahk.key_down('shift')
+        #     print("Кнопка 'shift' зажата")
 
         self.current_center = center
 
@@ -171,9 +208,9 @@ class Controller:
             else:
                 completed = True
 
-        # Отпускаем кнопки "shift", "x" и "c"
-        ahk.key_up('shift')
-        print("Кнопка 'shift' отпущена")
+        # # Отпускаем кнопки "shift", "x" и "c"
+        # ahk.key_up('shift')
+        # print("Кнопка 'shift' отпущена")
 
         if ahk.key_state('x', mode='P'):
             ahk.key_up('x')
