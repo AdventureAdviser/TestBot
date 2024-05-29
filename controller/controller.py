@@ -46,7 +46,7 @@ class Controller:
             offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
 
             # Наведение мыши на центр объекта быстрее и плавнее
-            steps = 50  # Уменьшаем количество шагов для плавности и быстроты
+            steps = 30  # Уменьшаем количество шагов для плавности и быстроты
             for i in range(steps):
                 ahk.mouse_move(x=offset_x // steps, y=offset_y // steps, speed=1, relative=True)
 
@@ -97,7 +97,7 @@ class Controller:
         while not completed:
             offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
 
-            steps = 50
+            steps = 30
             for i in range(steps):
                 ahk.mouse_move(x=0, y=offset_y // steps, speed=1, relative=True)
 
@@ -127,6 +127,12 @@ class Controller:
 
     def simulate_farming(self, center):
         print(f"Фарм объекта: {center}")
+
+        # Проверка, зажата ли кнопка "w"
+        if ahk.key_state('w', mode='P'):
+            ahk.key_up('w')
+            print("Кнопка 'w' отпущена")
+
         for i in tqdm(range(30, 0, -1), desc="Фарм объекта", unit="сек"):
             time.sleep(1)
         self.ready = True
