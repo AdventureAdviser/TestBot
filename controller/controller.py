@@ -46,7 +46,7 @@ class Controller:
             offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
 
             # Наведение мыши на центр объекта быстрее и плавнее
-            steps = 30  # Уменьшаем количество шагов для плавности и быстроты
+            steps = 80  # Уменьшаем количество шагов для плавности и быстроты
             for i in range(steps):
                 ahk.mouse_move(x=offset_x // steps, y=offset_y // steps, speed=1, relative=True)
 
@@ -97,9 +97,19 @@ class Controller:
         while not completed:
             offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
 
-            steps = 30
+            steps = 80
             for i in range(steps):
                 ahk.mouse_move(x=0, y=offset_y // steps, speed=1, relative=True)
+
+                # Проверка высоты камеры
+                if offset_y > 0:
+                    if not ahk.key_state('x', mode='P'):
+                        ahk.key_down('x')
+                        print("Кнопка 'x' зажата")
+                else:
+                    if ahk.key_state('x', mode='P'):
+                        ahk.key_up('x')
+                        print("Кнопка 'x' отпущена")
 
                 with self.controller_queue.mutex:
                     self.controller_queue.queue.clear()
