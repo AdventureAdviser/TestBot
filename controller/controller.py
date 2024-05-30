@@ -47,10 +47,10 @@ class Controller:
         while not completed:
             # Расчет смещения от центра экрана до центра объекта
             offset_x = self.current_center[0] - window_center_x
-            offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
+            offset_y = self.current_center[1] - window_center_y - self.configurator.get_move_distance_threshold()
 
             # Наведение мыши на центр объекта быстрее и плавнее
-            steps = 50  # Уменьшаем количество шагов для плавности и быстроты
+            steps = 60  # Уменьшаем количество шагов для плавности и быстроты
             for i in range(steps):
                 ahk.mouse_move(x=offset_x // steps, y=offset_y // steps, speed=1, relative=True)
 
@@ -77,14 +77,14 @@ class Controller:
                         ahk.key_up('a')
                         print("Кнопка 'a' отпущена")
 
-                if offset_y > 0:
+                if offset_y < 0:
                     if not ahk.key_state('x', mode='P'):
                         ahk.key_down('x')
                         print("Кнопка 'x' зажата")
                     if ahk.key_state('c', mode='P'):
                         ahk.key_up('c')
                         print("Кнопка 'c' отпущена")
-                elif offset_y < 0:
+                elif offset_y > 0:
                     if not ahk.key_state('c', mode='P'):
                         ahk.key_down('c')
                         print("Кнопка 'c' зажата")
@@ -147,7 +147,7 @@ class Controller:
         print(f"Движение к объекту: {center}, дистанция: {distance}")
 
         # Проверка, зажаты ли клавиши "w" и "shift"
-        if not ahk.key_state('w', mode='P'):
+        if ahk.key_state('w', mode='P'):
             ahk.key_down('w')
             print("Кнопка 'w' зажата")
 
@@ -163,21 +163,21 @@ class Controller:
         completed = False
 
         while not completed:
-            offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
+            offset_y = self.current_center[1] - window_center_y - self.configurator.get_move_distance_threshold()
 
-            steps = 50
+            steps = 60
             for i in range(steps):
                 ahk.mouse_move(x=0, y=offset_y // steps, speed=1, relative=True)
 
                 # Проверка высоты камеры
-                if offset_y > 0:
+                if offset_y < 0:
                     if not ahk.key_state('x', mode='P'):
                         ahk.key_down('x')
                         print("Кнопка 'x' зажата")
                     if ahk.key_state('c', mode='P'):
                         ahk.key_up('c')
                         print("Кнопка 'c' отпущена")
-                elif offset_y < 0:
+                elif offset_y > 0:
                     if not ahk.key_state('c', mode='P'):
                         ahk.key_down('c')
                         print("Кнопка 'c' зажата")

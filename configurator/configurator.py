@@ -7,6 +7,7 @@ class Configurator:
         self.current_scale = 1  # Изначальный масштаб
         self.area_threshold = 7500  # Изначальный порог площади
         self.distance_threshold = 200  # Изначальный порог расстояния
+        self.move_distance_threshold = 150  # Изначальный порог расстояния
         self.config_queue = queue.Queue()
 
     def set_fps(self, fps):
@@ -28,6 +29,10 @@ class Configurator:
         self.distance_threshold = distance_threshold
         self.config_queue.put(('distance_threshold', distance_threshold))
         print(f"Distance threshold updated to: {distance_threshold}")
+    def set_move_distance_threshold(self, move_distance_threshold):
+        self.move_distance_threshold = move_distance_threshold
+        self.config_queue.put(('move_distance_threshold', move_distance_threshold))
+        print(f"Distance threshold updated to: {move_distance_threshold}")
 
     def get_fps(self):
         return self.current_fps
@@ -40,6 +45,9 @@ class Configurator:
 
     def get_distance_threshold(self):
         return self.distance_threshold
+
+    def get_move_distance_threshold(self):
+        return self.move_distance_threshold
 
     def get_config_updates(self):
         updates = []
@@ -60,6 +68,8 @@ def start_configurator(configurator_queue):
             configurator.set_area_threshold(value)
         elif command == 'set_distance_threshold':
             configurator.set_distance_threshold(value)
+        elif command == 'set_move_distance_threshold':
+            configurator.set_move_distance_threshold(value)
         elif command is None:  # Специальный сигнал для завершения работы
             break
         print(f"Configurator received command: {command} with value: {value}")
