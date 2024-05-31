@@ -348,6 +348,7 @@ class Controller:
         if ahk.key_state('x', mode='P'):
             ahk.key_up('x')
         ahk.key_down('k')
+        time.sleep(0.01)
         ahk.key_up('k')
         for i in tqdm(range(10, 0, -1), desc="Фарм объекта", unit="сек"):
             time.sleep(1)
