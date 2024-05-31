@@ -40,7 +40,8 @@ class Controller:
         # Координаты центра объекта относительно окна (1280x720)
         screen_width, screen_height = 1280, 720
         window_center_x, window_center_y = screen_width // 2, screen_height // 2
-
+        with self.controller_queue.mutex:
+            self.controller_queue.queue.clear()
         # Переменная для отслеживания завершения наведения
         completed = False
 
@@ -100,8 +101,8 @@ class Controller:
                         print("Кнопка 'c' отпущена")
 
                 # Очищаем очередь и отправляем сигнал о готовности перед проверкой новых команд
-                with self.controller_queue.mutex:
-                    self.controller_queue.queue.clear()
+                # with self.controller_queue.mutex:
+                #     self.controller_queue.queue.clear()
                 self.response_queue.put({'status': 'ready'})
 
                 # Проверка на наличие новой команды в очереди
@@ -114,6 +115,8 @@ class Controller:
                     elif new_command['command'] != 'center_camera':
                         completed = True
                         break  # Прерываем текущий цикл for и перезапускаем перемещение
+                with self.controller_queue.mutex:
+                    self.controller_queue.queue.clear()
             else:
                 # Если цикл for завершился без прерывания, то наведение завершено
                 completed = True
@@ -159,7 +162,8 @@ class Controller:
 
         screen_width, screen_height = 1280, 720
         window_center_x, window_center_y = screen_width // 2, screen_height // 2
-
+        with self.controller_queue.mutex:
+            self.controller_queue.queue.clear()
         completed = False
 
         while not completed:
@@ -192,8 +196,8 @@ class Controller:
                         ahk.key_up('c')
                         print("Кнопка 'c' отпущена")
 
-                with self.controller_queue.mutex:
-                    self.controller_queue.queue.clear()
+                # with self.controller_queue.mutex:
+                #     self.controller_queue.queue.clear()
                 self.response_queue.put({'status': 'ready'})
 
                 if not self.controller_queue.empty():
@@ -205,6 +209,8 @@ class Controller:
                     elif new_command['command'] != 'move_to_object':
                         completed = True
                         break
+                with self.controller_queue.mutex:
+                    self.controller_queue.queue.clear()
             else:
                 completed = True
 
@@ -219,22 +225,135 @@ class Controller:
         if ahk.key_state('c', mode='P'):
             ahk.key_up('c')
             print("Кнопка 'c' отпущена")
-
+        with self.controller_queue.mutex:
+            self.controller_queue.queue.clear()
         self.ready = True
         self.response_queue.put({'status': 'ready'})
         print("Контроллер готов к приему новых команд")
 
     def simulate_farming(self, center):
-        print(f"Фарм объекта: {center}")
 
-        # Проверка, зажата ли кнопка "w"
         if ahk.key_state('w', mode='P'):
             ahk.key_up('w')
             print("Кнопка 'w' отпущена")
 
-        for i in tqdm(range(30, 0, -1), desc="Фарм объекта", unit="сек"):
+        ahk.key_down('k')
+        time.sleep(0.01)
+        ahk.key_up('k')
+        time.sleep(0.5)
+        # Обновляем текущие координаты центра объекта
+        self.current_center = center
+
+        # Координаты центра объекта относительно окна (1280x720)
+        screen_width, screen_height = 1280, 720
+        window_center_x, window_center_y = screen_width // 2, screen_height // 2
+        with self.controller_queue.mutex:
+            self.controller_queue.queue.clear()
+        # Переменная для отслеживания завершения наведения
+        completed = False
+        offset_yp = None
+        steps = 1200  # Уменьшаем количество шагов для плавности и быстроты
+        while not completed:
+            # Расчет смещения от центра экрана до центра объекта
+            offset_x = self.current_center[0] - window_center_x
+            offset_y = self.current_center[1] - window_center_y - self.configurator.get_distance_threshold()
+            # offset_y = self.current_center[1] - window_center_y
+
+            # Наведение мыши на центр объекта быстрее и плавнее
+            for i in range(steps):
+            # while True:
+                # offset_yp = offset_y
+                if offset_yp != offset_y:
+                 print(offset_y)
+                 offset_yp = offset_y
+                # print(offset_x)
+               #Управление поворотами камеры налево и направо
+                if offset_x > 0:
+                    if not ahk.key_state('w', mode='P'):
+                        ahk.key_down('w')
+                    if ahk.key_state('s', mode='P'):
+                        ahk.key_up('s')
+                        # print("Кнопка 'a' отпущена")
+                elif offset_x < 0:
+                    if not ahk.key_state('s', mode='P'):
+                        ahk.key_down('s')
+                        # print("Кнопка 'a' зажата")
+                    if ahk.key_state('w', mode='P'):
+                        ahk.key_up('w')
+                        # print("Кнопка 'd' отпущена")
+                else:
+                    if ahk.key_state('w', mode='P'):
+                        ahk.key_up('w')
+                        # print("Кнопка 'w' отпущена")
+                    if ahk.key_state('s', mode='P'):
+                        ahk.key_up('s')
+
+                # Очищаем очередь и отправляем сигнал о готовности перед проверкой новых команд
+                self.response_queue.put({'status': 'ready'})
+
+                # Проверка на наличие новой команды в очереди
+                if not self.controller_queue.empty():
+                    print('new_command')
+                    new_command = self.controller_queue.get()
+                    print(f"Обновлены координаты центра объекта: {new_command['center']}")
+                    self.current_center = new_command['center']
+                    if new_command['command'] == 'move_to_object':
+                        if offset_y > 0:
+                            if not ahk.key_state('c', mode='P'):
+                                ahk.key_down('c')
+                                # print("Кнопка 'x' зажата")
+                            if ahk.key_state('x', mode='P'):
+                                ahk.key_up('x')
+                            #     print("Кнопка 'c' отпущена")
+                        elif offset_y < 0:
+                            if not ahk.key_state('x', mode='P'):
+                                ahk.key_down('x')
+                        #         print("Кнопка 'c' зажата")
+                            if ahk.key_state('c', mode='P'):
+                                ahk.key_up('c')
+                        #         print("Кнопка 'x' отпущена")
+                        else:
+                            if ahk.key_state('x', mode='P'):
+                                ahk.key_up('x')
+                                # print("Кнопка 'x' отпущена")
+                            if ahk.key_state('c', mode='P'):
+                                ahk.key_up('c')
+                    if new_command['command'] == 'farm_object':
+                        print('farm')
+                        # for i in tqdm(range(5, 0, -1), desc="Фарм объекта", unit="сек"):
+                        #     time.sleep(1)
+                        completed = True
+                        print(offset_y)
+                    break  # Прерываем текущий цикл for и перезапускаем перемещение
+                with self.controller_queue.mutex:
+                    print('clear')
+                    self.controller_queue.queue.clear()
+            else:
+                # Если цикл for завершился без прерывания, то наведение завершено
+                completed = True
+
+        # # Отпускаем кнопки "shift", "x" и "c"
+        # ahk.key_up('shift')
+        # print("Кнопка 'shift' отпущена")
+        # # Отпускаем кнопки "a" и "d" по завершению функции
+        if ahk.key_state('w', mode='P'):
+            ahk.key_up('w')
+            # print("Кнопка 'd' отпущена")
+        if ahk.key_state('s', mode='P'):
+            ahk.key_up('s')
+            # print("Кнопка 'a' отпущена")
+        #
+        if ahk.key_state('c', mode='P'):
+            ahk.key_up('c')
+        if ahk.key_state('x', mode='P'):
+            ahk.key_up('x')
+        ahk.key_down('k')
+        ahk.key_up('k')
+        for i in tqdm(range(10, 0, -1), desc="Фарм объекта", unit="сек"):
             time.sleep(1)
         self.ready = True
+        with self.controller_queue.mutex:
+            self.controller_queue.queue.clear()
         self.response_queue.put({'status': 'ready'})
         print("Контроллер готов к приему новых команд")
 
